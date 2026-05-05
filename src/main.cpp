@@ -1,27 +1,43 @@
 #include <iostream>
-#include "types.h"
+#include <iomanip>
+#include <thread>
+#include <chrono>
+#include "SensorSimulator.h"
 
 int main() {
-    // Create a sample sensor reading to verify our structs work
-    SensorReading reading;
-    reading.timestampMs = 1000;
-    reading.battery.temperature = 25.0f;
-    reading.battery.stateOfCharge = 0.85f;
-    reading.battery.voltage = 400.0f;
-    reading.battery.current = 50.0f;
-    reading.battery.isCharging = false;
-    reading.thermal.ambientTemperature = 20.0f;
-    reading.thermal.fanSpeedPercent = 0.0f;
-    reading.thermal.pumpActive = false;
-    reading.thermal.heaterActive = false;
-    reading.vehicleSpeedKph = 80.0f;
+    // Initial conditions: 25C battery, 20C ambient, 85% SoC
+    SensorSimulator sensor(25.0f, 20.0f, 0.85f);
 
-    // Print it out to confirm everything works
-    std::cout << "=== EV Thermal Control System ===" << std::endl;
-    std::cout << "Time:        " << reading.timestampMs << " ms" << std::endl;
-    std::cout << "Battery Temp: " << reading.battery.temperature << " C" << std::endl;
-    std::cout << "SoC:          " << reading.battery.stateOfCharge * 100 << "%" << std::endl;
-    std::cout << "Speed:        " << reading.vehicleSpeedKph << " kph" << std::endl;
+    const float deltaTime    = 0.5f;   // 0.5 second per tick
+    const float vehicleSpeed = 180.0f; // kph — try changing this
 
+    std::cout << "=== EV Thermal Control System — Sensor Simulator ===" << std::endl;
+    std::cout << std::fixed << std::setprecision(2);
+    std::cout << std::left
+              << std::setw(8)  << "Time(s)"
+              << std::setw(12) << "BattTemp"
+              << std::setw(10) << "SoC%"
+              << std::setw(12) << "Voltage"
+              << std::setw(12) << "Current"
+              << std::setw(12) << "Coolant"
+              << std::endl;
+    std::cout << std::string(64, '-') << std::endl;
+
+    for (int i = 0; i < 30; i++) {
+        SensorReading r = sensor.update(vehicleSpeed, deltaTime);
+
+        std::cout << std::setw(8)  << (i * deltaTime)
+                  << std::setw(12) << r.battery.temperature
+                  << std::setw(10) << (r.battery.stateOfCharge * 100.0f)
+                  << std::setw(12) << r.battery.voltage
+                  << std::setw(12) << r.battery.current
+                  << std::setw(12) << r.thermal.coolantTemperature
+                  << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    std::cout << std::string(64, '-') << std::endl;
+    std::cout << "Simulation complete." << std::endl;
     return 0;
 }
