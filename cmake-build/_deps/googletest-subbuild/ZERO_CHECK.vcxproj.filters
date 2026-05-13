@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\source\repos\EVThermalControl\cmake-build\_deps\googletest-subbuild\CMakeFiles\fb9b402048b9a5bf2302415c6d66d1f8\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{51264F0B-CD55-325A-A255-A4434B7866B0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

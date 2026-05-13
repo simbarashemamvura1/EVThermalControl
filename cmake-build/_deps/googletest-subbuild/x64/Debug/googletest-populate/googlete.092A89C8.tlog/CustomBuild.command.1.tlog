@@ -1,0 +1,152 @@
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-MKDIR.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/tmp/googletest-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-DOWNLOAD.RULE
+setlocal
+cd C:\Users\User\source\repos\EVThermalControl\cmake-build\_deps
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/download-googletest-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/verify-googletest-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/extract-googletest-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-UPDATE.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-PATCH.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-CONFIGURE.RULE
+setlocal
+cd C:\Users\User\source\repos\EVThermalControl\cmake-build\_deps\googletest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-BUILD.RULE
+setlocal
+cd C:\Users\User\source\repos\EVThermalControl\cmake-build\_deps\googletest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-INSTALL.RULE
+setlocal
+cd C:\Users\User\source\repos\EVThermalControl\cmake-build\_deps\googletest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\11CCDCAA83B28E7E88E53C1272229A69\GOOGLETEST-POPULATE-TEST.RULE
+setlocal
+cd C:\Users\User\source\repos\EVThermalControl\cmake-build\_deps\googletest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\67E8CDE429DC7802F204E0A22667154B\GOOGLETEST-POPULATE-COMPLETE.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E make_directory C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/CMakeFiles/Debug/googletest-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/googletest-populate-prefix/src/googletest-populate-stamp/Debug/googletest-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\FB9B402048B9A5BF2302415C6D66D1F8\GOOGLETEST-POPULATE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\SOURCE\REPOS\EVTHERMALCONTROL\CMAKE-BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild -BC:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild --check-stamp-file C:/Users/User/source/repos/EVThermalControl/cmake-build/_deps/googletest-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

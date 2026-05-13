@@ -39,7 +39,7 @@ SensorReading SensorSimulator::update(float vehicleSpeedKph,
     batteryTemp_ += (heatGen - passiveCooling) * deltaTimeSeconds;
 
     // --- 4. Clamp temperature to physical limits ---
-    batteryTemp_ = std::clamp(batteryTemp_, -30.0f, 90.0f);
+    batteryTemp_ = std::clamp(batteryTemp_, -30.0f, 89.0f);
 
     // --- 5. Drain SoC based on speed (higher speed = more draw) ---
     float dischargRate = 0.002f + (vehicleSpeedKph / 200.0f) * 0.01f;

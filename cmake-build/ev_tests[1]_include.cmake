@@ -1,0 +1,5 @@
+if(EXISTS "C:/Users/User/source/repos/EVThermalControl/cmake-build/ev_tests[1]_tests.cmake")
+  include("C:/Users/User/source/repos/EVThermalControl/cmake-build/ev_tests[1]_tests.cmake")
+else()
+  add_test(ev_tests_NOT_BUILT ev_tests_NOT_BUILT)
+endif()
