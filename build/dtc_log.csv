@@ -6,4 +6,4 @@ timestamp_ms,event,dtc_code,description,severity
 5000,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
 10000,RAISED,0x2,Battery temperature critically high,CRITICAL
 6000,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-11000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+11500,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL

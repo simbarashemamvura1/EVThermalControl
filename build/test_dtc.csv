@@ -1,0 +1,4 @@
+timestamp_ms,event,dtc_code,description,severity
+1000,RAISED,0x1,Battery temperature above warning threshold,WARNING
+2000,RAISED,0x2,Battery temperature critically high,CRITICAL
+1000,RESOLVED,0x1,Battery temperature above warning threshold,INFO
