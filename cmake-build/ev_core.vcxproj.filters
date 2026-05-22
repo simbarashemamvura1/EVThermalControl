@@ -13,6 +13,9 @@
     <ClCompile Include="C:\Users\User\source\repos\EVThermalControl\src\DiagnosticsManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\User\source\repos\EVThermalControl\src\SocketServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="C:\Users\User\source\repos\EVThermalControl\CMakeLists.txt" />

@@ -17,14 +17,21 @@ FetchContent_MakeAvailable(googletest)
 
 # ============================================================
 #  Core simulation library (all modules except main)
+#  SocketServer added for Python dashboard integration
 # ============================================================
 add_library(ev_core
     src/SensorSimulator.cpp
     src/ThermalController.cpp
     src/CANBus.cpp
     src/DiagnosticsManager.cpp
+    src/SocketServer.cpp
 )
 target_include_directories(ev_core PUBLIC src)
+
+# Link Winsock on Windows (required for socket support)
+if(WIN32)
+    target_link_libraries(ev_core ws2_32)
+endif()
 
 # ============================================================
 #  Main executable
@@ -34,6 +41,7 @@ target_link_libraries(EVThermalControl ev_core)
 
 # ============================================================
 #  Test executable
+#  Note: SocketServer not included in tests — no network needed
 # ============================================================
 enable_testing()
 

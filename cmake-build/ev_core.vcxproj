@@ -288,6 +288,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\User\source\repos\EVThermalControl\src\ThermalController.cpp" />
     <ClCompile Include="C:\Users\User\source\repos\EVThermalControl\src\CANBus.cpp" />
     <ClCompile Include="C:\Users\User\source\repos\EVThermalControl\src\DiagnosticsManager.cpp" />
+    <ClCompile Include="C:\Users\User\source\repos\EVThermalControl\src\SocketServer.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

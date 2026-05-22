@@ -1,9 +1,48 @@
 timestamp_ms,event,dtc_code,description,severity
-5000,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
-5000,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
-6000,RAISED,0x1,Battery temperature above warning threshold,WARNING
-5000,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
-5000,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
-10000,RAISED,0x2,Battery temperature critically high,CRITICAL
-6000,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-11500,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+6000,RAISED,0x3,Battery temperature dangerously low,WARNING
+6000,RESOLVED,0x3,Battery temperature dangerously low,INFO
+33000,RAISED,0x1,Battery temperature above warning threshold,WARNING
+33000,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+41400,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
+41400,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
+41400,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
+41400,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
+249800,RAISED,0x3,Battery temperature dangerously low,WARNING
+249800,RESOLVED,0x3,Battery temperature dangerously low,INFO
+287200,RAISED,0x6,Battery SoC low warning,WARNING
+299800,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+302800,RAISED,0x1,Battery temperature above warning threshold,WARNING
+308600,RAISED,0x2,Battery temperature critically high,CRITICAL
+302800,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+310400,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+583000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+583000,RAISED,0x2,Battery temperature critically high,CRITICAL
+583000,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+583000,RESOLVED,0x2,Battery temperature critically high,INFO
+583400,RAISED,0x1,Battery temperature above warning threshold,WARNING
+583400,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+592000,RAISED,0x3,Battery temperature dangerously low,WARNING
+592400,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+592400,RAISED,0x3,Battery temperature dangerously low,WARNING
+592400,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+606400,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+606400,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+614200,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+614200,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+622400,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+622400,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+639000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+639000,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+658600,RAISED,0x1,Battery temperature above warning threshold,WARNING
+664200,RAISED,0x2,Battery temperature critically high,CRITICAL
+658600,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+709200,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+709200,RAISED,0x2,Battery temperature critically high,CRITICAL
+709200,RAISED,0x7,Battery SoC critically low — charge immediately,CRITICAL
+709200,RESOLVED,0x2,Battery temperature critically high,INFO
+709800,RAISED,0x1,Battery temperature above warning threshold,WARNING
+709800,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+714200,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
+714200,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
+714200,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
+714200,RESOLVED,0x4,Sensor reading out of physical bounds,INFO

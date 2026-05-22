@@ -2,3 +2,4 @@ C:\Users\User\source\repos\EVThermalControl\src\SensorSimulator.cpp;C:\Users\Use
 C:\Users\User\source\repos\EVThermalControl\src\ThermalController.cpp;C:\Users\User\source\repos\EVThermalControl\cmake-build\ev_core.dir\Debug\ThermalController.obj
 C:\Users\User\source\repos\EVThermalControl\src\CANBus.cpp;C:\Users\User\source\repos\EVThermalControl\cmake-build\ev_core.dir\Debug\CANBus.obj
 C:\Users\User\source\repos\EVThermalControl\src\DiagnosticsManager.cpp;C:\Users\User\source\repos\EVThermalControl\cmake-build\ev_core.dir\Debug\DiagnosticsManager.obj
+C:\Users\User\source\repos\EVThermalControl\src\SocketServer.cpp;C:\Users\User\source\repos\EVThermalControl\cmake-build\ev_core.dir\Debug\SocketServer.obj
