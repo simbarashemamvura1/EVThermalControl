@@ -34,11 +34,12 @@ state = {
     "heater":   False,
     "sys":      "NORMAL",
     "dtc":      "",
-    "dtcs":     [],       # all active DTCs from C++
+    "dtcs":     [],
     "scenario": "Select a scenario to begin",
     "tick":     0,
     "fault":    False,
     "cpp_connected": False,
+    "battery_dead":  False,   # NEW — tracks dead battery state
 }
 lock = threading.Lock()
 fault_log = []
@@ -56,7 +57,6 @@ def send_scenario_command(name):
         print(f"[CMD] Sent scenario '{name}' to C++ engine")
     except Exception as e:
         print(f"[CMD] Could not send to C++ engine: {e}")
-        # Fall back to Python scenario
         with lock:
             if not state["cpp_connected"]:
                 run_python_scenario(name)
@@ -90,12 +90,17 @@ def socket_reader():
                     try:
                         d = json_module.loads(line)
                         with lock:
+                            # Speed — drives both dashboard and car scene
                             state["spd"]     = float(d.get("spd",     0))
+                            state["tgt_spd"] = float(d.get("spd",     0))
+
                             state["bT"]      = float(d.get("bT",      25))
                             state["tgt_bT"]  = float(d.get("bT",      25))
-                            state["tgt_spd"] = float(d.get("spd",     0))
                             state["fan"]     = float(d.get("fan",     0))
-                            state["soc"]     = float(d.get("soc",     100))
+
+                            # Use realSoC from C++ if present — exact value
+                            state["soc"]     = float(d.get("realSoC", d.get("soc", 100)))
+
                             state["coolant"] = float(d.get("coolant", 22))
                             state["pump"]    = bool(d.get("pump",     False))
                             state["heater"]  = bool(d.get("heater",   False))
@@ -103,11 +108,13 @@ def socket_reader():
                             state["fault"]   = bool(d.get("fault",    False))
                             state["scenario"]= str(d.get("scenario",  ""))
 
-                            # All active DTCs as list
+                            # Dead battery flag
+                            soc_val = state["soc"]
+                            state["battery_dead"] = (soc_val <= 0.5)
+
+                            # All active DTCs
                             dtcs = d.get("dtcs", [])
                             state["dtcs"] = dtcs
-
-                            # Primary DTC for alert box
                             dtc = str(d.get("dtc", ""))
                             state["dtc"] = dtc
 
@@ -152,6 +159,13 @@ def physics_loop():
             if state["cpp_connected"]:
                 pass
             else:
+                # Dead battery — stop everything
+                if state["battery_dead"]:
+                    state["spd"]     = 0.0
+                    state["tgt_spd"] = 0.0
+                    time.sleep(0.18)
+                    continue
+
                 spd_diff = state["tgt_spd"] - state["spd"]
                 abs_gap  = abs(spd_diff)
                 ease     = min(1.0, abs_gap / 80.0)
@@ -191,19 +205,33 @@ def physics_loop():
                 state["heater"] = bT < 10
                 state["pump"]   = bT > 40
 
+                # Realistic drain — heat + cold + speed + heater
                 base_drain   = 0.0008
-                heater_drain = 0.003 if state["heater"] else 0.0
+                heater_drain = 0.003  if state["heater"] else 0.0
                 drive_drain  = spd * 0.000055
-                state["soc"] = max(5.0, state["soc"] -
-                                   (base_drain+heater_drain+drive_drain)*dt*60)
+                heat_drain   = max(0.0, (bT - 40.0) * 0.00015) if bT > 40 else 0.0
+                cold_drain   = max(0.0, (10.0 - bT) * 0.0001)  if bT < 10 else 0.0
+                total_drain  = (base_drain + heater_drain + drive_drain
+                                + heat_drain + cold_drain) * dt * 60
+
+                state["soc"] = max(0.0, state["soc"] - total_drain)
+
+                # Dead battery detection
+                if state["soc"] <= 0.5 and not state["battery_dead"]:
+                    state["battery_dead"] = True
+                    state["tgt_spd"]     = 0.0
+                    state["scenario"]    = "Battery depleted — charge required"
+
                 state["coolant"] = lerp(state["coolant"],
                     state["amb"]+(bT-state["amb"])*0.4, min(1.0,0.006*dt*60))
 
                 dtc = ""
-                if state["fault"]:  dtc = "DTC 0x0005 — Sensor dropout"
-                elif bT > 75:       dtc = "DTC 0x0002 — Critical overtemp"
-                elif bT > 60:       dtc = "DTC 0x0001 — Overtemp warning"
-                elif bT < 5:        dtc = "DTC 0x0003 — Undertemp warning"
+                if state["fault"]:       dtc = "DTC 0x0005 — Sensor dropout"
+                elif bT > 75:            dtc = "DTC 0x0002 — Critical overtemp"
+                elif bT > 60:            dtc = "DTC 0x0001 — Overtemp warning"
+                elif bT < 5:             dtc = "DTC 0x0003 — Undertemp warning"
+                elif state["soc"] < 5:   dtc = "DTC 0x0007 — Critical SoC"
+                elif state["soc"] < 15:  dtc = "DTC 0x0006 — Low SoC warning"
                 state["dtc"]  = dtc
                 state["dtcs"] = [dtc] if dtc else []
 
@@ -262,6 +290,11 @@ py_timer = None
 
 def run_python_scenario(name):
     global py_timer
+    # Block scenario if battery is dead
+    with lock:
+        if state["battery_dead"]:
+            state["scenario"] = "Battery depleted — charge required to run scenarios"
+            return
     if py_timer: py_timer.cancel()
     steps = scenarios.get(name, [])
     def run_step(idx):
@@ -271,6 +304,9 @@ def run_python_scenario(name):
             return
         s = steps[idx]
         with lock:
+            if state["battery_dead"]:
+                state["scenario"] = "Battery depleted — charge required"
+                return
             state["scenario"] = s["label"]
             state["fault"]    = (s["bT"] == "FAULT")
             if not state["fault"]:
@@ -451,7 +487,7 @@ app.layout = html.Div([
           "background":"#f0f0ee","minHeight":"100vh"})
 
 # ============================================================
-#  FLASK LIVE-STATE ENDPOINT
+#  FLASK LIVE-STATE ENDPOINT — scene polls this
 # ============================================================
 @app.server.route('/live-state')
 def live_state():
@@ -459,8 +495,8 @@ def live_state():
         return jsonify({
             "spd":      round(state["spd"], 1),
             "bT":       round(state["bT"], 1),
-            "tgt_spd":  round(state["tgt_spd"], 1),
-            "tgt_bT":   round(state["tgt_bT"], 1),
+            "tgt_spd":  round(state["spd"], 1),   # scene uses exact C++ speed
+            "tgt_bT":   round(state["bT"], 1),
             "fan":      round(state["fan"], 1),
             "soc":      round(state["soc"], 1),
             "sys":      state["sys"],
@@ -469,10 +505,11 @@ def live_state():
             "pump":     state["pump"],
             "heater":   state["heater"],
             "dtc":      state["dtc"],
+            "battery_dead": state["battery_dead"],
         })
 
 # ============================================================
-#  SCENARIO CALLBACKS — always try C++ first, fallback to Python
+#  SCENARIO CALLBACKS
 # ============================================================
 @app.callback(Output("s-cold","data"), Input("btn-cold","n_clicks"), prevent_initial_call=True)
 def run_cold(n):
@@ -498,11 +535,11 @@ def run_full(n):
 #  MAIN UPDATE CALLBACK
 # ============================================================
 @app.callback(
-    Output("state-badge",       "children"),
-    Output("state-badge",       "style"),
-    Output("scenario-label",    "children"),
-    Output("cpp-indicator",     "children"),
-    Output("cpp-indicator",     "style"),
+    Output("state-badge",        "children"),
+    Output("state-badge",        "style"),
+    Output("scenario-label",     "children"),
+    Output("cpp-indicator",      "children"),
+    Output("cpp-indicator",      "style"),
     Output("scenario-mode-label","children"),
     Output("stat-bt",   "children"), Output("stat-fan",  "children"),
     Output("stat-soc",  "children"), Output("stat-spd",  "children"),
@@ -519,13 +556,14 @@ def run_full(n):
 )
 def update(n):
     with lock:
-        d  = dict(state)
-        tt = list(times)
-        bt = list(batt_temps)
-        fs = list(fan_speeds)
-        sv = list(soc_vals)
-        fl = list(fault_log[-20:])
+        d           = dict(state)
+        tt          = list(times)
+        bt          = list(batt_temps)
+        fs          = list(fan_speeds)
+        sv          = list(soc_vals)
+        fl          = list(fault_log[-20:])
         active_dtcs = list(d.get("dtcs", []))
+        battery_dead= d.get("battery_dead", False)
 
     sc = STATE_COLORS.get(d["sys"], STATE_COLORS["NORMAL"])
 
@@ -535,7 +573,7 @@ def update(n):
         "border":f"1.5px solid {sc['border']}","transition":"all .5s","letterSpacing":".05em"
     }
 
-    cpp_on = d["cpp_connected"]
+    cpp_on    = d["cpp_connected"]
     cpp_text  = "C++ Engine Live" if cpp_on else "Python Fallback"
     cpp_style = {
         "fontSize":"9px","fontWeight":"700","letterSpacing":".05em",
@@ -561,16 +599,34 @@ def update(n):
              "background":"#ccc","boxShadow":"none",
              "transition":"all .4s","flexShrink":"0"}
 
-    sens_s = ok_s if ok         else bad_s
-    pump_s = ok_s if d["pump"]  else off_s
+    sens_s = ok_s if ok        else bad_s
+    pump_s = ok_s if d["pump"] else off_s
     fan_s  = ok_s if d["fan"]>5 else off_s
 
-    # DTC alert — show ALL active DTCs
-    if active_dtcs:
+    # ---- ALERT BOX — dead battery takes priority ----
+    if battery_dead:
+        dtc_el = html.Div([
+            html.Span("Battery Depleted", style={
+                "fontSize":"9px","fontWeight":"700","textTransform":"uppercase",
+                "letterSpacing":".06em","color":"#6B1515",
+                "display":"block","marginBottom":"4px"
+            }),
+            html.Span(
+                "State of Charge at 0% — Vehicle cannot operate. "
+                "Please charge the battery before starting a new scenario.",
+                style={"fontWeight":"600","fontSize":"11px","lineHeight":"1.5"}
+            ),
+        ], style={
+            "background":"#FAECE7","border":"1.5px solid #A32D2D",
+            "borderRadius":"8px","padding":"10px 13px","color":"#6B1515"
+        })
+
+    elif active_dtcs:
         dtc_el = html.Div([
             html.Span("Active Diagnostic Codes", style={
                 "fontSize":"9px","fontWeight":"700","textTransform":"uppercase",
-                "letterSpacing":".06em","color":"#993C1D","display":"block","marginBottom":"4px"
+                "letterSpacing":".06em","color":"#993C1D",
+                "display":"block","marginBottom":"4px"
             }),
             *[html.Div(dtc_item, style={
                 "fontWeight":"600","fontSize":"11px","padding":"2px 0",
@@ -621,20 +677,25 @@ def update(n):
 
     soc_fig = go.Figure()
     if sv:
+        # Color the SoC line red when critically low
+        soc_color = "#A32D2D" if d["soc"] < 15 else "#534AB7"
+        soc_fill  = "rgba(163,45,45,0.1)" if d["soc"] < 15 else "rgba(83,74,183,0.07)"
         soc_fig.add_trace(go.Scatter(x=list(tt),y=list(sv),mode="lines",
-            line=dict(color="#534AB7",width=2),
-            fill="tozeroy",fillcolor="rgba(83,74,183,0.07)"))
-    soc_fig.add_hline(y=15,line=dict(color="rgba(239,159,39,0.4)",width=1,dash="dash"),
+            line=dict(color=soc_color,width=2),
+            fill="tozeroy",fillcolor=soc_fill))
+    soc_fig.add_hline(y=15,line=dict(color="rgba(239,159,39,0.5)",width=1,dash="dash"),
         annotation_text="Low SoC",annotation_font_size=9,annotation_font_color="#854F0B")
+    soc_fig.add_hline(y=5,line=dict(color="rgba(163,45,45,0.5)",width=1,dash="dash"),
+        annotation_text="Critical",annotation_font_size=9,annotation_font_color="#6B1515")
     soc_fig.update_layout(**base_layout(130))
     soc_fig.update_layout(yaxis_range=[0,100])
 
-    # Fault log — show all logged DTCs
     if fl:
         fault_els = [
             html.Div([
                 html.Span(f"t={f['t']}",style={
-                    "fontSize":"10px","color":"#aaa","minWidth":"48px","fontFamily":"monospace"}),
+                    "fontSize":"10px","color":"#aaa",
+                    "minWidth":"48px","fontFamily":"monospace"}),
                 html.Span(f["msg"],style={
                     "fontSize":"11px","color":"#993C1D","fontWeight":"600"}),
             ], style={"display":"flex","alignItems":"center","gap":"8px",
@@ -643,15 +704,24 @@ def update(n):
         ]
     else:
         fault_els = [html.Div("No faults recorded.",
-            style={"fontSize":"11px","color":"#bbb","padding":"4px 0","fontStyle":"italic"})]
+            style={"fontSize":"11px","color":"#bbb",
+                   "padding":"4px 0","fontStyle":"italic"})]
+
+    # SoC display — red when low
+    soc_val  = round(d["soc"])
+    soc_disp = f"{soc_val}%"
+    soc_stat_style = {"fontSize":"14px","fontWeight":"700",
+                      "color":"#A32D2D" if soc_val < 15 else "#1a1a1a"}
 
     bT_disp = "— Sensor fault" if d["fault"] else f"{round(d['bT'])}°C"
 
     return (
         d["sys"], badge_style, d["scenario"],
         cpp_text, cpp_style, mode_label,
-        bT_disp, f"{round(d['fan'])}%",
-        f"{round(d['soc'])}%", f"{round(d['spd'])} kph",
+        bT_disp,
+        f"{round(d['fan'])}%",
+        html.Span(soc_disp, style=soc_stat_style),
+        f"{round(d['spd'])} kph",
         html.Span("ON",style=p_style) if d["pump"]   else html.Span("OFF",style=p_style),
         html.Span("ON",style=h_style) if d["heater"] else html.Span("OFF",style=h_style),
         dtc_el,
