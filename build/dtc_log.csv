@@ -1,33 +1,20 @@
 timestamp_ms,event,dtc_code,description,severity
 6400,RAISED,0x3,Battery temperature dangerously low,WARNING
 6400,RESOLVED,0x3,Battery temperature dangerously low,INFO
-41600,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
-41600,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
-41600,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
-41600,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
-106600,RAISED,0x3,Battery temperature dangerously low,WARNING
-106600,RESOLVED,0x3,Battery temperature dangerously low,INFO
-178200,RAISED,0x1,Battery temperature above warning threshold,WARNING
-184000,RAISED,0x2,Battery temperature critically high,CRITICAL
-178200,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-186000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
-222800,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
-222800,RAISED,0x2,Battery temperature critically high,CRITICAL
-222800,RESOLVED,0x2,Battery temperature critically high,INFO
-223400,RAISED,0x1,Battery temperature above warning threshold,WARNING
-223400,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-228400,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
-228400,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
-228400,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
-228400,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
-273800,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
-277000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
-279400,RAISED,0x3,Battery temperature dangerously low,WARNING
-279400,RESOLVED,0x3,Battery temperature dangerously low,INFO
-307400,RAISED,0x6,Battery SoC low warning,WARNING
-307800,RAISED,0x1,Battery temperature above warning threshold,WARNING
-307800,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-316400,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
-316400,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
-316400,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
-316400,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
+33600,RAISED,0x1,Battery temperature above warning threshold,WARNING
+33600,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+42200,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
+42200,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
+42200,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
+42200,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
+112400,RAISED,0x1,Battery temperature above warning threshold,WARNING
+118000,RAISED,0x2,Battery temperature critically high,CRITICAL
+112400,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+120000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+118000,RESOLVED,0x2,Battery temperature critically high,INFO
+122400,RAISED,0x1,Battery temperature above warning threshold,WARNING
+122400,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+198200,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
+198200,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
+198200,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
+198200,RESOLVED,0x4,Sensor reading out of physical bounds,INFO

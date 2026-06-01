@@ -18,7 +18,6 @@
 #include <string>
 #include <map>
 #include <mutex>
-#include <algorithm>
 #include "SensorSimulator.h"
 #include "ThermalController.h"
 #include "CANBus.h"
@@ -26,9 +25,16 @@
 #include "SocketServer.h"
 
 // ============================================================
-//  GLOBAL DIAG POINTER
+//  GLOBAL POINTERS
 // ============================================================
-static DiagnosticsManager* g_diag = nullptr;
+static DiagnosticsManager* g_diag       = nullptr;
+static ThermalController*  g_controller = nullptr;
+
+// ============================================================
+//  RESET FLAG — tells simulation loop to snap temp instantly
+// ============================================================
+std::atomic<bool>  g_resetRequested(false);
+std::atomic<float> g_resetTemp(25.0f);
 
 // ============================================================
 //  HELPERS
@@ -55,15 +61,6 @@ std::string jsonStr(const std::string& s) {
     return out;
 }
 
-float clampF(float v, float lo, float hi) {
-    if (v < lo) return lo;
-    if (v > hi) return hi;
-    return v;
-}
-
-float maxF(float a, float b) { return a > b ? a : b; }
-float minF(float a, float b) { return a < b ? a : b; }
-
 std::string buildJson(
     const SensorReading&      reading,
     const ActuatorCommand&    cmd,
@@ -75,7 +72,6 @@ std::string buildJson(
     std::ostringstream j;
     j << std::fixed << std::setprecision(2);
 
-    // All active DTCs as JSON array
     std::string dtcArray = "[";
     const auto& active = diag.getActiveFaults();
     for (size_t i = 0; i < active.size(); i++) {
@@ -88,7 +84,6 @@ std::string buildJson(
     }
     dtcArray += "]";
 
-    // Primary DTC
     std::string dtc = "";
     if (!active.empty()) {
         std::ostringstream code;
@@ -127,12 +122,11 @@ std::string buildJson(
 struct ScenarioStep {
     float       duration;
     float       speed;
-    float       battTemp;   // -999 = fault inject
+    float       battTemp;
     std::string label;
 };
 typedef std::vector<ScenarioStep> Scenario;
 typedef std::map<std::string, Scenario> ScenarioMap;
-
 ScenarioMap SCENARIOS;
 
 void initScenarios() {
@@ -174,7 +168,7 @@ void initScenarios() {
 }
 
 // ============================================================
-//  GLOBAL SIMULATION STATE
+//  GLOBAL STATE
 // ============================================================
 std::atomic<float> g_targetSpeed(0.0f);
 std::atomic<float> g_targetBattTemp(25.0f);
@@ -198,23 +192,34 @@ std::string getLabel() {
 //  SCENARIO RUNNER
 // ============================================================
 void runScenario(const std::string& name) {
-    if (!g_diag) return;
+    if (!g_diag || !g_controller) return;
     if (SCENARIOS.find(name) == SCENARIOS.end()) return;
 
+    // Stop any running scenario
     g_stopScenario = true;
-std::this_thread::sleep_for(std::chrono::milliseconds(300));
-g_stopScenario = false;
-g_scenarioRunning = true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    g_stopScenario = false;
+    g_scenarioRunning = true;
 
-// Reset state so new scenario starts clean
-g_targetSpeed.store(0.0f);
-g_targetBattTemp.store(25.0f);  // reset temp — exits SAFE SHUTDOWN immediately
-g_injectFault = false;
-g_diag->clearFaults();
+    // ---- INSTANT FULL RESET ----
+    // Set targets to normal
+    g_targetSpeed.store(0.0f);
+    g_targetBattTemp.store(25.0f);
+    g_injectFault = false;
+    g_diag->clearFaults();
 
-// Brief pause to let the simulation loop process the reset
-std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // Signal simulation loop to snap actualBattTemp to 25 immediately
+    // This prevents the controller from staying in SAFE SHUTDOWN
+    g_resetTemp.store(25.0f);
+    g_resetRequested.store(true);
 
+    // Reset controller state machine to NORMAL
+    g_controller->reset();
+
+    // Wait for simulation loop to process the snap reset (2-3 ticks)
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    // Now run the scenario steps
     const Scenario& steps = SCENARIOS[name];
     for (size_t i = 0; i < steps.size(); i++) {
         if (g_stopScenario) break;
@@ -240,14 +245,14 @@ std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     if (!g_stopScenario) {
-        g_targetSpeed = 0.0f;
+        g_targetSpeed.store(0.0f);
+        g_targetBattTemp.store(25.0f);
         g_injectFault = false;
         setLabel("Simulation complete - select next scenario");
     }
     g_scenarioRunning = false;
 }
 
-// Named thread entry points — no captures needed
 void runFullScenario()    { runScenario("full");    }
 void runColdScenario()    { runScenario("cold");    }
 void runHighwayScenario() { runScenario("highway"); }
@@ -292,20 +297,15 @@ void commandServerLoop() {
             std::cout << "[CMD] Received scenario: " << cmd << "\n";
 
             if (cmd == "cold") {
-                std::thread t(runColdScenario);
-                t.detach();
+                std::thread t(runColdScenario); t.detach();
             } else if (cmd == "highway") {
-                std::thread t(runHighwayScenario);
-                t.detach();
+                std::thread t(runHighwayScenario); t.detach();
             } else if (cmd == "fault") {
-                std::thread t(runFaultScenario);
-                t.detach();
+                std::thread t(runFaultScenario); t.detach();
             } else if (cmd == "full") {
-                std::thread t(runFullScenario);
-                t.detach();
+                std::thread t(runFullScenario); t.detach();
             }
         }
-
 #ifdef _WIN32
         closesocket(fd);
 #else
@@ -337,7 +337,8 @@ int main() {
     DiagnosticsManager diag("build/dtc_log.csv");
     SocketServer       dataServer(9000);
 
-    g_diag = &diag;
+    g_diag       = &diag;
+    g_controller = &controller;
 
     dataServer.start();
 
@@ -368,30 +369,39 @@ int main() {
 
     while (true) {
 
+        // ---- INSTANT RESET — snap actualBattTemp when requested ----
+        // This is what makes the badge update immediately on new scenario
+        if (g_resetRequested.load()) {
+            actualBattTemp = g_resetTemp.load();
+            actualSpeed    = 0.0f;
+            g_resetRequested.store(false);
+            std::cout << "[RESET] System reset to normal temp: "
+                      << actualBattTemp << "C\n";
+        }
+
         // Dead battery check
         if (actualSoC <= 0.0f && !batteryDead) {
             batteryDead    = true;
             g_targetSpeed  = 0.0f;
             g_stopScenario = true;
             setLabel("Battery depleted - charge required to continue");
-            std::cout << "\n*** BATTERY DEPLETED - Vehicle stopped."
-                      << " Charge battery to resume. ***\n\n";
+            std::cout << "\n*** BATTERY DEPLETED - Vehicle stopped. ***\n\n";
         }
 
         if (batteryDead) {
-            std::ostringstream deadStream;
-            deadStream << std::fixed << std::setprecision(1);
-            deadStream << "{\"tick\":"    << tick
-                       << ",\"spd\":0"
-                       << ",\"bT\":"     << actualBattTemp
-                       << ",\"soc\":0,\"realSoC\":0,\"fan\":0"
-                       << ",\"pump\":false,\"heater\":false"
-                       << ",\"sys\":\"NORMAL\",\"fault\":false"
-                       << ",\"faultCount\":0,\"dtc\":\"\",\"dtcs\":[]"
-                       << ",\"scenario\":\"Battery depleted - charge required\""
-                       << ",\"coolant\":22,\"ambient\":20"
-                       << ",\"voltage\":300,\"current\":0}";
-            dataServer.broadcast(deadStream.str());
+            std::ostringstream ds;
+            ds << std::fixed << std::setprecision(1);
+            ds << "{\"tick\":"    << tick
+               << ",\"spd\":0"
+               << ",\"bT\":"     << actualBattTemp
+               << ",\"soc\":0,\"realSoC\":0,\"fan\":0"
+               << ",\"pump\":false,\"heater\":false"
+               << ",\"sys\":\"NORMAL\",\"fault\":false"
+               << ",\"faultCount\":0,\"dtc\":\"\",\"dtcs\":[]"
+               << ",\"scenario\":\"Battery depleted - charge required\""
+               << ",\"coolant\":22,\"ambient\":20"
+               << ",\"voltage\":300,\"current\":0}";
+            dataServer.broadcast(ds.str());
             std::this_thread::sleep_for(
                 std::chrono::milliseconds((int)(deltaTime * 1000)));
             tick++;
@@ -406,7 +416,7 @@ int main() {
         if (actualSpeed < 0.5f && actualSpeed > -0.5f && tgtSpd == 0.0f)
             actualSpeed = 0.0f;
 
-        // Smooth battery temp
+        // Smooth battery temp — lerp toward target
         float tgtBT    = g_targetBattTemp.load();
         float btDiff   = tgtBT - actualBattTemp;
         actualBattTemp += btDiff * 0.05f;
@@ -421,9 +431,7 @@ int main() {
         bool  heaterOn    = (actualBattTemp < 10.0f);
         float heaterDrain = heaterOn ? 0.003f : 0.0f;
         float totalDrain  = (baseDrain + driveDrain + heatDrain
-                             + coldDrain + heaterDrain)
-                             * deltaTime * 60.0f;
-
+                             + coldDrain + heaterDrain) * deltaTime * 60.0f;
         actualSoC = actualSoC - totalDrain;
         if (actualSoC < 0.0f) actualSoC = 0.0f;
 
@@ -451,7 +459,7 @@ int main() {
         // Diagnostics
         diag.update(reading, controller.getCurrentState());
 
-        // Broadcast JSON
+        // Broadcast JSON with exact speed value
         std::string label    = getLabel();
         std::string base     = buildJson(reading, cmd, diag,
                                          actualSpeed, actualSoC, tick);
