@@ -1,20 +1,20 @@
 timestamp_ms,event,dtc_code,description,severity
-6400,RAISED,0x3,Battery temperature dangerously low,WARNING
-6400,RESOLVED,0x3,Battery temperature dangerously low,INFO
-33600,RAISED,0x1,Battery temperature above warning threshold,WARNING
-33600,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-42200,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
-42200,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
-42200,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
-42200,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
-112400,RAISED,0x1,Battery temperature above warning threshold,WARNING
-118000,RAISED,0x2,Battery temperature critically high,CRITICAL
-112400,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-120000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
-118000,RESOLVED,0x2,Battery temperature critically high,INFO
-122400,RAISED,0x1,Battery temperature above warning threshold,WARNING
-122400,RESOLVED,0x1,Battery temperature above warning threshold,INFO
-198200,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
-198200,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
-198200,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
-198200,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
+6000,RAISED,0x3,Battery temperature dangerously low,WARNING
+6000,RESOLVED,0x3,Battery temperature dangerously low,INFO
+41400,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
+41400,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
+41400,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
+41400,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
+90200,RAISED,0x1,Battery temperature above warning threshold,WARNING
+96000,RAISED,0x2,Battery temperature critically high,CRITICAL
+90200,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+98000,RAISED,0x8,System in SAFE_SHUTDOWN — battery critically hot,CRITICAL
+96000,RESOLVED,0x2,Battery temperature critically high,INFO
+100400,RAISED,0x1,Battery temperature above warning threshold,WARNING
+100400,RESOLVED,0x1,Battery temperature above warning threshold,INFO
+123600,RAISED,0x5,Fault injection active — sensor data unreliable,CRITICAL
+123600,RAISED,0x4,Sensor reading out of physical bounds,CRITICAL
+123600,RESOLVED,0x5,Fault injection active — sensor data unreliable,INFO
+123600,RESOLVED,0x4,Sensor reading out of physical bounds,INFO
+162200,RAISED,0x3,Battery temperature dangerously low,WARNING
+162200,RESOLVED,0x3,Battery temperature dangerously low,INFO

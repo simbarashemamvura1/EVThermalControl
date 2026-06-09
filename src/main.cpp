@@ -197,7 +197,7 @@ void runScenario(const std::string& name) {
 
     // Stop any running scenario
     g_stopScenario = true;
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
     g_stopScenario = false;
     g_scenarioRunning = true;
 
@@ -217,7 +217,7 @@ void runScenario(const std::string& name) {
     g_controller->reset();
 
     // Wait for simulation loop to process the snap reset (2-3 ticks)
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
     // Now run the scenario steps
     const Scenario& steps = SCENARIOS[name];

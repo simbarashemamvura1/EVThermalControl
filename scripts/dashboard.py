@@ -8,12 +8,6 @@ from collections import deque
 import socket as sock_module
 import json as json_module
 
-# ============================================================
-#  EV THERMAL CONTROL SYSTEM — LIVE DASHBOARD
-#  Data port 9000: C++ streams JSON every tick
-#  Command port 9001: Python sends scenario name on button click
-# ============================================================
-
 MAX_POINTS = 100
 
 times        = deque(maxlen=MAX_POINTS)
@@ -22,32 +16,42 @@ fan_speeds   = deque(maxlen=MAX_POINTS)
 soc_vals     = deque(maxlen=MAX_POINTS)
 
 state = {
-    "bT":       25.0,
-    "tgt_bT":   25.0,
-    "spd":      0.0,
-    "tgt_spd":  0.0,
-    "fan":      0.0,
-    "soc":      100.0,
-    "coolant":  22.0,
-    "amb":      20.0,
-    "pump":     False,
-    "heater":   False,
-    "sys":      "NORMAL",
-    "dtc":      "",
-    "dtcs":     [],
-    "scenario": "Select a scenario to begin",
-    "tick":     0,
-    "fault":    False,
-    "cpp_connected": False,
-    "battery_dead":  False,   # NEW — tracks dead battery state
+    "bT":           25.0,
+    "tgt_bT":       25.0,
+    "spd":          0.0,
+    "tgt_spd":      0.0,
+    "fan":          0.0,
+    "soc":          100.0,
+    "coolant":      22.0,
+    "amb":          20.0,
+    "pump":         False,
+    "heater":       False,
+    "sys":          "NORMAL",
+    "dtc":          "",
+    "dtcs":         [],
+    "scenario":     "Select a scenario to begin",
+    "scenario_id":  0,        # increments each time a new scenario starts
+    "scenario_name":"",       # clean name of selected scenario e.g. "Cold Start"
+    "tick":         0,
+    "fault":        False,
+    "cpp_connected":False,
+    "battery_dead": False,
 }
 lock = threading.Lock()
 fault_log = []
 
-# ============================================================
-#  SEND SCENARIO COMMAND TO C++ ENGINE (port 9001)
-# ============================================================
+SCENARIO_NAMES = {
+    "cold":    "Cold Start",
+    "highway": "Highway Heat",
+    "fault":   "Fault Injection",
+    "full":    "Full Auto Run",
+}
+
 def send_scenario_command(name):
+    # Increment scenario_id and set clean name immediately
+    with lock:
+        state["scenario_id"]   += 1
+        state["scenario_name"]  = SCENARIO_NAMES.get(name, name)
     try:
         s = sock_module.socket(sock_module.AF_INET, sock_module.SOCK_STREAM)
         s.settimeout(2)
@@ -61,9 +65,6 @@ def send_scenario_command(name):
             if not state["cpp_connected"]:
                 run_python_scenario(name)
 
-# ============================================================
-#  SOCKET READER — reads data from C++ on port 9000
-# ============================================================
 def socket_reader():
     while True:
         try:
@@ -90,35 +91,24 @@ def socket_reader():
                     try:
                         d = json_module.loads(line)
                         with lock:
-                            # Speed — drives both dashboard and car scene
                             state["spd"]     = float(d.get("spd",     0))
                             state["tgt_spd"] = float(d.get("spd",     0))
-
                             state["bT"]      = float(d.get("bT",      25))
                             state["tgt_bT"]  = float(d.get("bT",      25))
                             state["fan"]     = float(d.get("fan",     0))
-
-                            # Use realSoC from C++ if present — exact value
                             state["soc"]     = float(d.get("realSoC", d.get("soc", 100)))
-
                             state["coolant"] = float(d.get("coolant", 22))
                             state["pump"]    = bool(d.get("pump",     False))
                             state["heater"]  = bool(d.get("heater",   False))
                             state["sys"]     = str(d.get("sys",       "NORMAL"))
                             state["fault"]   = bool(d.get("fault",    False))
                             state["scenario"]= str(d.get("scenario",  ""))
+                            state["battery_dead"] = (state["soc"] <= 0.5)
 
-                            # Dead battery flag
-                            soc_val = state["soc"]
-                            state["battery_dead"] = (soc_val <= 0.5)
-
-                            # All active DTCs
                             dtcs = d.get("dtcs", [])
                             state["dtcs"] = dtcs
-                            dtc = str(d.get("dtc", ""))
-                            state["dtc"] = dtc
+                            state["dtc"]  = str(d.get("dtc", ""))
 
-                            # Log each unique DTC
                             for dtc_item in dtcs:
                                 if not fault_log or fault_log[-1]["msg"] != dtc_item:
                                     fault_log.append({
@@ -142,9 +132,6 @@ def socket_reader():
 
 threading.Thread(target=socket_reader, daemon=True).start()
 
-# ============================================================
-#  PYTHON FALLBACK PHYSICS
-# ============================================================
 def lerp(a, b, t):
     return a + (b - a) * t
 
@@ -159,9 +146,8 @@ def physics_loop():
             if state["cpp_connected"]:
                 pass
             else:
-                # Dead battery — stop everything
                 if state["battery_dead"]:
-                    state["spd"]     = 0.0
+                    state["spd"] = 0.0
                     state["tgt_spd"] = 0.0
                     time.sleep(0.18)
                     continue
@@ -205,33 +191,30 @@ def physics_loop():
                 state["heater"] = bT < 10
                 state["pump"]   = bT > 40
 
-                # Realistic drain — heat + cold + speed + heater
                 base_drain   = 0.0008
-                heater_drain = 0.003  if state["heater"] else 0.0
+                heater_drain = 0.003 if state["heater"] else 0.0
                 drive_drain  = spd * 0.000055
-                heat_drain   = max(0.0, (bT - 40.0) * 0.00015) if bT > 40 else 0.0
-                cold_drain   = max(0.0, (10.0 - bT) * 0.0001)  if bT < 10 else 0.0
-                total_drain  = (base_drain + heater_drain + drive_drain
-                                + heat_drain + cold_drain) * dt * 60
-
+                heat_drain   = max(0.0, (bT-40.0)*0.00015) if bT>40 else 0.0
+                cold_drain   = max(0.0, (10.0-bT)*0.0001)  if bT<10 else 0.0
+                total_drain  = (base_drain+heater_drain+drive_drain
+                                +heat_drain+cold_drain)*dt*60
                 state["soc"] = max(0.0, state["soc"] - total_drain)
 
-                # Dead battery detection
                 if state["soc"] <= 0.5 and not state["battery_dead"]:
                     state["battery_dead"] = True
-                    state["tgt_spd"]     = 0.0
-                    state["scenario"]    = "Battery depleted — charge required"
+                    state["tgt_spd"]      = 0.0
+                    state["scenario"]     = "Battery depleted — charge required"
 
                 state["coolant"] = lerp(state["coolant"],
                     state["amb"]+(bT-state["amb"])*0.4, min(1.0,0.006*dt*60))
 
                 dtc = ""
-                if state["fault"]:       dtc = "DTC 0x0005 — Sensor dropout"
-                elif bT > 75:            dtc = "DTC 0x0002 — Critical overtemp"
-                elif bT > 60:            dtc = "DTC 0x0001 — Overtemp warning"
-                elif bT < 5:             dtc = "DTC 0x0003 — Undertemp warning"
-                elif state["soc"] < 5:   dtc = "DTC 0x0007 — Critical SoC"
-                elif state["soc"] < 15:  dtc = "DTC 0x0006 — Low SoC warning"
+                if state["fault"]:      dtc = "DTC 0x0005 — Sensor dropout"
+                elif bT > 75:           dtc = "DTC 0x0002 — Critical overtemp"
+                elif bT > 60:           dtc = "DTC 0x0001 — Overtemp warning"
+                elif bT < 5:            dtc = "DTC 0x0003 — Undertemp warning"
+                elif state["soc"] < 5:  dtc = "DTC 0x0007 — Critical SoC"
+                elif state["soc"] < 15: dtc = "DTC 0x0006 — Low SoC warning"
                 state["dtc"]  = dtc
                 state["dtcs"] = [dtc] if dtc else []
 
@@ -248,41 +231,38 @@ def physics_loop():
 
 threading.Thread(target=physics_loop, daemon=True).start()
 
-# ============================================================
-#  PYTHON FALLBACK SCENARIO ENGINE
-# ============================================================
 scenarios = {
     "cold": [
-        {"dur":5, "spd":0,   "bT":-10,    "label":"Cold Start — Battery at -10°C"},
-        {"dur":6, "spd":40,  "bT":-4,     "label":"Cold Start — Heater active, warming"},
-        {"dur":6, "spd":70,  "bT":8,      "label":"Cold Start — Approaching normal range"},
-        {"dur":5, "spd":90,  "bT":19,     "label":"Cold Start — Normal temperature reached"},
+        {"dur":5,"spd":0,  "bT":-10,    "label":"Cold Start — Battery at -10°C"},
+        {"dur":6,"spd":40, "bT":-4,     "label":"Cold Start — Heater active, warming"},
+        {"dur":6,"spd":70, "bT":8,      "label":"Cold Start — Approaching normal range"},
+        {"dur":5,"spd":90, "bT":19,     "label":"Cold Start — Normal temperature reached"},
     ],
     "highway": [
-        {"dur":5, "spd":60,  "bT":24,     "label":"Highway — Cruise at 60 kph"},
-        {"dur":6, "spd":120, "bT":36,     "label":"Highway — Accelerating to 120 kph"},
-        {"dur":6, "spd":180, "bT":47,     "label":"Highway — Cooling system activated"},
-        {"dur":4, "spd":180, "bT":64,     "label":"Highway — Overtemp warning"},
-        {"dur":4, "spd":180, "bT":74,     "label":"Highway — Fault state, full cooling"},
-        {"dur":4, "spd":0,   "bT":82,     "label":"Highway — Safe shutdown triggered"},
+        {"dur":5,"spd":60, "bT":24,     "label":"Highway — Cruise at 60 kph"},
+        {"dur":6,"spd":120,"bT":36,     "label":"Highway — Accelerating to 120 kph"},
+        {"dur":6,"spd":180,"bT":47,     "label":"Highway — Cooling system activated"},
+        {"dur":4,"spd":180,"bT":64,     "label":"Highway — Overtemp warning"},
+        {"dur":4,"spd":180,"bT":74,     "label":"Highway — Fault state, full cooling"},
+        {"dur":4,"spd":0,  "bT":82,     "label":"Highway — Safe shutdown triggered"},
     ],
     "fault": [
-        {"dur":5, "spd":100, "bT":30,     "label":"Fault Injection — Normal driving"},
-        {"dur":5, "spd":100, "bT":"FAULT","label":"Fault Injection — Sensor dropout active"},
-        {"dur":5, "spd":100, "bT":33,     "label":"Fault Injection — System recovering"},
-        {"dur":4, "spd":80,  "bT":27,     "label":"Fault Injection — Recovery confirmed"},
+        {"dur":5,"spd":100,"bT":30,     "label":"Fault Injection — Normal driving"},
+        {"dur":5,"spd":100,"bT":"FAULT","label":"Fault Injection — Sensor dropout active"},
+        {"dur":5,"spd":100,"bT":33,     "label":"Fault Injection — System recovering"},
+        {"dur":4,"spd":80, "bT":27,     "label":"Fault Injection — Recovery confirmed"},
     ],
     "full": [
-        {"dur":5, "spd":0,   "bT":-8,     "label":"Full Run [1/3] — Cold Start: -8°C"},
-        {"dur":6, "spd":50,  "bT":2,      "label":"Full Run [1/3] — Heater active"},
-        {"dur":5, "spd":90,  "bT":18,     "label":"Full Run [1/3] — Normal reached"},
-        {"dur":5, "spd":130, "bT":30,     "label":"Full Run [2/3] — Accelerating"},
-        {"dur":5, "spd":180, "bT":46,     "label":"Full Run [2/3] — Cooling activated"},
-        {"dur":4, "spd":180, "bT":62,     "label":"Full Run [2/3] — Overtemp warning"},
-        {"dur":4, "spd":50,  "bT":38,     "label":"Full Run [2/3] — Decelerating"},
-        {"dur":4, "spd":100, "bT":28,     "label":"Full Run [3/3] — Pre-fault baseline"},
-        {"dur":5, "spd":100, "bT":"FAULT","label":"Full Run [3/3] — Sensor dropout"},
-        {"dur":5, "spd":80,  "bT":27,     "label":"Full Run [3/3] — Full recovery"},
+        {"dur":5,"spd":0,  "bT":-8,     "label":"Full Run — Cold Start: -8°C"},
+        {"dur":6,"spd":50, "bT":2,      "label":"Full Run — Heater active"},
+        {"dur":5,"spd":90, "bT":18,     "label":"Full Run — Normal reached"},
+        {"dur":5,"spd":130,"bT":30,     "label":"Full Run — Accelerating to highway"},
+        {"dur":5,"spd":180,"bT":46,     "label":"Full Run — Cooling activated"},
+        {"dur":4,"spd":180,"bT":62,     "label":"Full Run — Overtemp warning"},
+        {"dur":4,"spd":50, "bT":38,     "label":"Full Run — Decelerating"},
+        {"dur":4,"spd":100,"bT":28,     "label":"Full Run — Pre-fault baseline"},
+        {"dur":5,"spd":100,"bT":"FAULT","label":"Full Run — Sensor dropout"},
+        {"dur":5,"spd":80, "bT":27,     "label":"Full Run — Full recovery"},
     ],
 }
 
@@ -290,7 +270,6 @@ py_timer = None
 
 def run_python_scenario(name):
     global py_timer
-    # Block scenario if battery is dead
     with lock:
         if state["battery_dead"]:
             state["scenario"] = "Battery depleted — charge required to run scenarios"
@@ -316,9 +295,6 @@ def run_python_scenario(name):
         py_timer.start()
     run_step(0)
 
-# ============================================================
-#  DASH APP
-# ============================================================
 app = dash.Dash(__name__, title="EV Thermal Control")
 
 STATE_COLORS = {
@@ -357,7 +333,6 @@ def sensor_dot(dot_id, label, dc="#1D9E75", dg="0 0 4px #1D9E75"):
 
 app.layout = html.Div([
 
-    # Header
     html.Div([
         html.Div([
             html.H1("EV Thermal Control System",
@@ -385,15 +360,14 @@ app.layout = html.Div([
               "borderBottom":"1px solid #e8e8e6","marginBottom":"12px","borderRadius":"12px"}),
 
     html.Div([
-
-        # LEFT
         html.Div([
             html.Div(id="scenario-label", style={
                 "fontSize":"12px","fontWeight":"600","color":"#534AB7",
                 "marginBottom":"8px","minHeight":"18px","letterSpacing":".01em"}),
 
+            # iframe — v param busts cache so new file always loads
             html.Div([
-                html.Iframe(src="/assets/ev_scene.html",
+                html.Iframe(src="/scene",  # served by Flask with no-cache headers
                     style={"width":"100%","height":"260px","border":"none",
                            "borderRadius":"12px","display":"block"})
             ], style={"borderRadius":"12px","overflow":"hidden",
@@ -441,7 +415,6 @@ app.layout = html.Div([
 
         ], style={"flex":"1","minWidth":"0"}),
 
-        # RIGHT
         html.Div([
             html.Div([
                 html.Div("Battery Temperature °C", style={
@@ -487,30 +460,45 @@ app.layout = html.Div([
           "background":"#f0f0ee","minHeight":"100vh"})
 
 # ============================================================
-#  FLASK LIVE-STATE ENDPOINT — scene polls this
+#  FLASK SCENE ROUTE — no-cache so changes always load fresh
 # ============================================================
+@app.server.route('/scene')
+def serve_scene():
+    from flask import Response
+    import os
+    scene_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'assets', 'ev_scene.html'
+    )
+    with open(scene_path, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+    resp = Response(html_content, mimetype='text/html')
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma']        = 'no-cache'
+    resp.headers['Expires']       = '0'
+    return resp
+
 @app.server.route('/live-state')
 def live_state():
     with lock:
         return jsonify({
-            "spd":      round(state["spd"], 1),
-            "bT":       round(state["bT"], 1),
-            "tgt_spd":  round(state["spd"], 1),   # scene uses exact C++ speed
-            "tgt_bT":   round(state["bT"], 1),
-            "fan":      round(state["fan"], 1),
-            "soc":      round(state["soc"], 1),
-            "sys":      state["sys"],
-            "fault":    state["fault"],
-            "scenario": state["scenario"],
-            "pump":     state["pump"],
-            "heater":   state["heater"],
-            "dtc":      state["dtc"],
+            "spd":          round(state["spd"], 1),
+            "bT":           round(state["bT"], 1),
+            "tgt_spd":      round(state["spd"], 1),
+            "tgt_bT":       round(state["bT"], 1),
+            "fan":          round(state["fan"], 1),
+            "soc":          round(state["soc"], 1),
+            "sys":          state["sys"],
+            "fault":        state["fault"],
+            "scenario":     state["scenario"],
+            "scenario_id":  state["scenario_id"],    # scene watches this
+            "scenario_name":state["scenario_name"],  # clean name for announcement
+            "pump":         state["pump"],
+            "heater":       state["heater"],
+            "dtc":          state["dtc"],
             "battery_dead": state["battery_dead"],
         })
 
-# ============================================================
-#  SCENARIO CALLBACKS
-# ============================================================
 @app.callback(Output("s-cold","data"), Input("btn-cold","n_clicks"), prevent_initial_call=True)
 def run_cold(n):
     threading.Thread(target=send_scenario_command, args=("cold",), daemon=True).start()
@@ -531,9 +519,6 @@ def run_full(n):
     threading.Thread(target=send_scenario_command, args=("full",), daemon=True).start()
     return n
 
-# ============================================================
-#  MAIN UPDATE CALLBACK
-# ============================================================
 @app.callback(
     Output("state-badge",        "children"),
     Output("state-badge",        "style"),
@@ -566,7 +551,6 @@ def update(n):
         battery_dead= d.get("battery_dead", False)
 
     sc = STATE_COLORS.get(d["sys"], STATE_COLORS["NORMAL"])
-
     badge_style = {
         "padding":"5px 16px","borderRadius":"99px","fontSize":"11px",
         "fontWeight":"700","background":sc["bg"],"color":sc["text"],
@@ -603,31 +587,24 @@ def update(n):
     pump_s = ok_s if d["pump"] else off_s
     fan_s  = ok_s if d["fan"]>5 else off_s
 
-    # ---- ALERT BOX — dead battery takes priority ----
     if battery_dead:
         dtc_el = html.Div([
             html.Span("Battery Depleted", style={
                 "fontSize":"9px","fontWeight":"700","textTransform":"uppercase",
                 "letterSpacing":".06em","color":"#6B1515",
-                "display":"block","marginBottom":"4px"
-            }),
+                "display":"block","marginBottom":"4px"}),
             html.Span(
                 "State of Charge at 0% — Vehicle cannot operate. "
                 "Please charge the battery before starting a new scenario.",
-                style={"fontWeight":"600","fontSize":"11px","lineHeight":"1.5"}
-            ),
-        ], style={
-            "background":"#FAECE7","border":"1.5px solid #A32D2D",
-            "borderRadius":"8px","padding":"10px 13px","color":"#6B1515"
-        })
-
+                style={"fontWeight":"600","fontSize":"11px","lineHeight":"1.5"}),
+        ], style={"background":"#FAECE7","border":"1.5px solid #A32D2D",
+                  "borderRadius":"8px","padding":"10px 13px","color":"#6B1515"})
     elif active_dtcs:
         dtc_el = html.Div([
             html.Span("Active Diagnostic Codes", style={
                 "fontSize":"9px","fontWeight":"700","textTransform":"uppercase",
                 "letterSpacing":".06em","color":"#993C1D",
-                "display":"block","marginBottom":"4px"
-            }),
+                "display":"block","marginBottom":"4px"}),
             *[html.Div(dtc_item, style={
                 "fontWeight":"600","fontSize":"11px","padding":"2px 0",
                 "borderBottom":"1px solid rgba(216,90,48,0.15)"
@@ -648,8 +625,7 @@ def update(n):
             margin=dict(l=35,r=10,t=5,b=20),
             xaxis=dict(showgrid=False,color="#ccc",tickfont=dict(size=8)),
             yaxis=dict(showgrid=True,gridcolor="#f5f5f3",color="#aaa",tickfont=dict(size=8)),
-            showlegend=False, height=h
-        )
+            showlegend=False, height=h)
 
     temp_fig = go.Figure()
     if bt:
@@ -677,9 +653,8 @@ def update(n):
 
     soc_fig = go.Figure()
     if sv:
-        # Color the SoC line red when critically low
-        soc_color = "#A32D2D" if d["soc"] < 15 else "#534AB7"
-        soc_fill  = "rgba(163,45,45,0.1)" if d["soc"] < 15 else "rgba(83,74,183,0.07)"
+        soc_color = "#A32D2D" if d["soc"]<15 else "#534AB7"
+        soc_fill  = "rgba(163,45,45,0.1)" if d["soc"]<15 else "rgba(83,74,183,0.07)"
         soc_fig.add_trace(go.Scatter(x=list(tt),y=list(sv),mode="lines",
             line=dict(color=soc_color,width=2),
             fill="tozeroy",fillcolor=soc_fill))
@@ -694,8 +669,7 @@ def update(n):
         fault_els = [
             html.Div([
                 html.Span(f"t={f['t']}",style={
-                    "fontSize":"10px","color":"#aaa",
-                    "minWidth":"48px","fontFamily":"monospace"}),
+                    "fontSize":"10px","color":"#aaa","minWidth":"48px","fontFamily":"monospace"}),
                 html.Span(f["msg"],style={
                     "fontSize":"11px","color":"#993C1D","fontWeight":"600"}),
             ], style={"display":"flex","alignItems":"center","gap":"8px",
@@ -704,15 +678,12 @@ def update(n):
         ]
     else:
         fault_els = [html.Div("No faults recorded.",
-            style={"fontSize":"11px","color":"#bbb",
-                   "padding":"4px 0","fontStyle":"italic"})]
+            style={"fontSize":"11px","color":"#bbb","padding":"4px 0","fontStyle":"italic"})]
 
-    # SoC display — red when low
     soc_val  = round(d["soc"])
     soc_disp = f"{soc_val}%"
     soc_stat_style = {"fontSize":"14px","fontWeight":"700",
-                      "color":"#A32D2D" if soc_val < 15 else "#1a1a1a"}
-
+                      "color":"#A32D2D" if soc_val<15 else "#1a1a1a"}
     bT_disp = "— Sensor fault" if d["fault"] else f"{round(d['bT'])}°C"
 
     return (
@@ -729,19 +700,9 @@ def update(n):
         sens_s, sens_s, sens_s, sens_s, pump_s, fan_s,
     )
 
-# ============================================================
-#  RUN
-# ============================================================
 if __name__ == "__main__":
     print("=" * 52)
     print("  EV Thermal Control System — Dashboard")
     print("  Open: http://127.0.0.1:8050")
-    print("")
-    print("  Mode 1 — Python only:")
-    print("    python scripts/dashboard.py")
-    print("")
-    print("  Mode 2 — C++ engine wired:")
-    print("    Terminal 1: .\\cmake-build\\Debug\\EVThermalControl.exe")
-    print("    Terminal 2: python scripts/dashboard.py")
     print("=" * 52)
     app.run(debug=False, port=8050)
