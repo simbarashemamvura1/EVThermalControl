@@ -22,6 +22,8 @@ var ACT={
   _coolingPlayed:false,
   _heatingPlayed:false,
   _faultPlayed:false,
+  _recoveryPlayed:false,
+  _accelPlayed:false,
   _shutdownPlayed:false,
   _completePlayed:false,
   _lastScenario:'',
@@ -248,7 +250,7 @@ function physics(dt){
     ACT.spd=lerp(ACT.spd,0,0.1);
     if(!ACT._deadPlayed){
       alertWithBeep(
-        "Battery depleted. Vehicle cannot operate. Please charge the battery.",
+        "Battery fully depleted. The vehicle cannot operate without charge. All drive systems are now offline. Please connect to a charging source to resume operation.",
         beepDead, true
       );
       ACT._deadPlayed=true;
@@ -276,7 +278,14 @@ function physics(dt){
       speechQueue=[];
       beepScenario();
       setTimeout(function(){
-        pushFront('Initiating ' + ACT._scenarioName + ' simulation.');
+        var introMap = {
+          'Cold Start':      'Initiating Cold Start simulation. The battery pack begins at minus 10 degrees Celsius. Watch the heating system activate and bring the pack to operating temperature.',
+          'Highway Heat':    'Initiating Highway Heat simulation. The vehicle will accelerate to highway speed. Monitor the battery temperature rise and observe the thermal protection system respond.',
+          'Fault Injection': 'Initiating Fault Injection simulation. A sensor dropout will be simulated mid-drive. Observe how the battery management system detects and responds to the fault.',
+          'Full Auto Run':   'Initiating Full Auto Run. This simulation runs all three scenarios back to back — cold start, highway heat soak, and fault injection with full recovery.'
+        };
+        var intro = introMap[ACT._scenarioName] || ('Initiating ' + ACT._scenarioName + ' simulation.');
+        pushFront(intro);
       },320);
     }
   }
@@ -295,28 +304,29 @@ function physics(dt){
 
     if(ACT.sys==='COOLING'&&!ACT._coolingPlayed){
       alertWithBeep(
-        "Cooling system activated. Battery temperature is elevated.",
+        "Attention. Battery temperature is increasing to critical level. Cooling fans are now active to protect the battery pack from thermal damage.",
         beepCooling, true
       );
       ACT._coolingPlayed=true;
     }
     if(ACT.sys==='HEATING'&&!ACT._heatingPlayed){
       alertWithBeep(
-        "Heating system engaged. Battery temperature is below operating threshold.",
+        "Battery temperature is below 10 degrees Celsius. Heating system is now active. Cold batteries lose charge capacity and efficiency. Warming up to operating range.",
         beepHeating, true
       );
       ACT._heatingPlayed=true;
     }
     if(ACT.sys==='FAULT'&&!ACT._faultPlayed){
       alertWithBeep(
-        "Warning. Sensor fault detected. System entering fault state.",
+        "Warning. Sensor dropout detected. The battery management system has lost reliable data from the battery pack. Temperature and voltage readings are now unreliable. The system is entering fault state and applying maximum cooling as a safety precaution.",
         beepFault, true
       );
       ACT._faultPlayed=true;
+      ACT._recoveryPlayed=false;  // reset so recovery fires next time
     }
     if(ACT.sys==='SAFE SHUTDOWN'&&!ACT._shutdownPlayed){
       alertWithBeep(
-        "Critical temperature exceeded. Initiating safe shutdown sequence.",
+        "Critical alert. Battery temperature has exceeded safe operating limits. The thermal management system is initiating a controlled safe shutdown to prevent permanent battery damage.",
         beepShutdown, true
       );
       ACT._shutdownPlayed=true;
@@ -325,17 +335,43 @@ function physics(dt){
     // Reset flags on leaving state
     if(ACT._prevSys==='COOLING')       ACT._coolingPlayed=false;
     if(ACT._prevSys==='HEATING')       ACT._heatingPlayed=false;
-    if(ACT._prevSys==='FAULT')         ACT._faultPlayed=false;
     if(ACT._prevSys==='SAFE SHUTDOWN') ACT._shutdownPlayed=false;
+
+    // Recovery — system leaving FAULT back to NORMAL
+    if(ACT._prevSys==='FAULT' && ACT.sys==='NORMAL'){
+      ACT._faultPlayed=false;
+      if(!ACT._recoveryPlayed){
+        alertWithBeep(
+          "Sensor data has been restored. The battery management system has successfully recovered from the fault state. All readings are back within normal parameters. Resuming standard thermal monitoring.",
+          beepHeating, false
+        );
+        ACT._recoveryPlayed=true;
+      }
+    } else if(ACT._prevSys==='FAULT'){
+      // Leaving fault to something other than NORMAL (e.g. shutdown)
+      ACT._faultPlayed=false;
+    }
 
     ACT._prevSys=ACT.sys;
   }
   ACT.stateBlend=Math.min(1,ACT.stateBlend+dt*1.8);
 
+  // ---- ACCELERATION VOICE OVER ----
+  // Fires once when target speed reaches or exceeds 100 kph
+  if(ACT._tSpd>=100&&!ACT._accelPlayed){
+    alertWithBeep(
+      "Vehicle accelerating to highway speed. Monitor battery temperature closely as motor load increases significantly at high speed.",
+      beepScenario, false
+    );
+    ACT._accelPlayed=true;
+  }
+  // Reset flag when speed drops back below 60 so it can fire again
+  if(ACT._tSpd<60) ACT._accelPlayed=false;
+
   // Low SoC warning
   if(ACT.soc<15&&ACT.soc>0.5&&!ACT._lowSoCPlayed){
     alertWithBeep(
-      "Battery charge is low. Fifteen percent remaining. Recommend charging soon.",
+      "Low battery warning. State of charge is below 15 percent. Vehicle range is critically limited. Please connect to a charging station soon.",
       beepLowSoC, false
     );
     ACT._lowSoCPlayed=true;
@@ -346,7 +382,7 @@ function physics(dt){
   var isComplete=ACT.scenario.indexOf('complete')!==-1;
   if(isComplete&&!ACT._completePlayed){
     alertWithBeep(
-      "Simulation complete. All systems nominal. Ready for next scenario.",
+      "Simulation complete. All monitored systems have returned to normal operating parameters. The thermal management system is standing by. Select a new scenario to continue.",
       beepComplete, false
     );
     ACT._completePlayed=true;
@@ -772,6 +808,18 @@ function drawScene(){
   c.fillStyle='rgba(0,0,0,0.55)';c.font='bold 12px sans-serif';
   c.textAlign='right';c.textBaseline='bottom';
   c.fillText(Math.round(ACT._tSpd)+' kph',W-10,H-8);
+
+  // ---- ACCELERATION VOICE OVER ----
+  // Fires once when target speed reaches or exceeds 100 kph
+  if(ACT._tSpd>=100&&!ACT._accelPlayed){
+    alertWithBeep(
+      "Vehicle accelerating to highway speed. Monitor battery temperature closely as motor load increases significantly at high speed.",
+      beepScenario, false
+    );
+    ACT._accelPlayed=true;
+  }
+  // Reset flag when speed drops back below 60 so it can fire again
+  if(ACT._tSpd<60) ACT._accelPlayed=false;
 
   // Low SoC warning
   if(ACT.soc<15&&ACT.soc>0.5&&!ACT.battery_dead){
