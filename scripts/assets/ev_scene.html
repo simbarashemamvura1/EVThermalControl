@@ -279,7 +279,7 @@ function physics(dt){
       beepScenario();
       setTimeout(function(){
         var introMap = {
-          'Cold Start':      'Initiating Cold Start simulation. The battery pack begins at minus 10 degrees Celsius. Watch the heating system activate and bring the pack to operating temperature.',
+          'Cold Start':      'Running Cold Start simulation.',
           'Highway Heat':    'Initiating Highway Heat simulation. The vehicle will accelerate to highway speed. Monitor the battery temperature rise and observe the thermal protection system respond.',
           'Fault Injection': 'Initiating Fault Injection simulation. A sensor dropout will be simulated mid-drive. Observe how the battery management system detects and responds to the fault.',
           'Full Auto Run':   'Initiating Full Auto Run. This simulation runs all three scenarios back to back — cold start, highway heat soak, and fault injection with full recovery.'
@@ -311,7 +311,7 @@ function physics(dt){
     }
     if(ACT.sys==='HEATING'&&!ACT._heatingPlayed){
       alertWithBeep(
-        "Battery temperature is below 10 degrees Celsius. Heating system is now active. Cold batteries lose charge capacity and efficiency. Warming up to operating range.",
+        "Battery below normal temperature threshold. Switching heater on to warm battery system.",
         beepHeating, true
       );
       ACT._heatingPlayed=true;
@@ -334,7 +334,16 @@ function physics(dt){
 
     // Reset flags on leaving state
     if(ACT._prevSys==='COOLING')       ACT._coolingPlayed=false;
-    if(ACT._prevSys==='HEATING')       ACT._heatingPlayed=false;
+    if(ACT._prevSys==='HEATING' && ACT.sys==='NORMAL'){
+      ACT._heatingPlayed=false;
+      // Heater turned off — battery reached safe temperature
+      alertWithBeep(
+        "Switching off heater. Battery system stable.",
+        beepComplete, false
+      );
+    } else if(ACT._prevSys==='HEATING'){
+      ACT._heatingPlayed=false;
+    }
     if(ACT._prevSys==='SAFE SHUTDOWN') ACT._shutdownPlayed=false;
 
     // Recovery — system leaving FAULT back to NORMAL
@@ -381,10 +390,10 @@ function physics(dt){
   // Simulation complete
   var isComplete=ACT.scenario.indexOf('complete')!==-1;
   if(isComplete&&!ACT._completePlayed){
-    alertWithBeep(
-      "Simulation complete. All monitored systems have returned to normal operating parameters. The thermal management system is standing by. Select a new scenario to continue.",
-      beepComplete, false
-    );
+    var completeMsg = ACT._scenarioName==="Cold Start"
+      ? "Cold Start simulation complete. System ready for next scenario."
+      : "Simulation complete. All monitored systems have returned to normal operating parameters. The thermal management system is standing by. Select a new scenario to continue.";
+    alertWithBeep(completeMsg, beepComplete, false);
     ACT._completePlayed=true;
   }
   if(!isComplete) ACT._completePlayed=false;
