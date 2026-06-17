@@ -276,7 +276,7 @@ cd cmake-build\Debug
 
 ---
 
-## Interview Notes
+## Notes
 
 This project was built to demonstrate practical knowledge of:
 
