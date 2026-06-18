@@ -374,7 +374,7 @@ This section documents real problems encountered during development and how they
 
 ---
 
-## Interview Notes
+## Notes
 
 This project demonstrates practical competency in:
 
